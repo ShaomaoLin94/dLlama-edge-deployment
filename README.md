@@ -1,4 +1,4 @@
-# Distributed Llama Inference on a Raspberry Pi Cluster
+# Scalable & Fault-Aware Edge Deployment of Distributed Llama
 
 本專案在 4 台 Raspberry Pi 組成的邊緣叢集上部署 Llama 3.2 3B，並以 [Distributed Llama](https://github.com/b4rtaz/distributed-llama) 將模型推論工作分散至 Root 與 Worker 節點。系統透過 LINE Chatbot 接收文字請求，整合任務排隊、節點心跳監控、逾時處理及 Worker 斷線後的重新推論流程，形成可實際操作的端到端 LLM 推論服務。
 
