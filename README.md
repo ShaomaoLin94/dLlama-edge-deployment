@@ -47,7 +47,7 @@
 | Heartbeat port | 9800 |
 | Webhook port | 5000 |
 
-IP 位址、執行緒數及節點數目前由程式參數設定，部署至不同網路環境時需依實際拓撲調整。
+IP 位址、執行緒數及節點數目前由程式參數設定，部署至不同網路環境時需依需求調整。
 
 ## Project Structure
 
@@ -61,7 +61,7 @@ IP 位址、執行緒數及節點數目前由程式參數設定，部署至不�
 
 ## Setup
 
-建議所有節點使用 Raspberry Pi OS Lite 64-bit，並配置位於相同網段的固定 IP。先在 Root 與所有 Worker 安裝及編譯 Distributed Llama：
+所有節點使用 Raspberry Pi OS Lite 64-bit，並配置位於相同網段的固定 IP。先在 Root 與所有 Worker 安裝及編譯 Distributed Llama：
 
 ```bash
 sudo apt update
@@ -131,9 +131,8 @@ inference
 - LINE 介面目前只接受英文文字輸入，且一次只處理一項推論工作。
 - 節點位址與模型參數仍需依部署環境手動設定。
 - Worker 故障後會重新開始推論，無法從中斷位置接續生成。
-- 分散式推論效能會受到網路頻寬、延遲及節點硬體差異影響。
 - Distributed Llama 的節點數需符合 `1, 2, 4, ... 2^n`，且上限受模型 KV heads 數量限制。
 
 ## Acknowledgements
 
-本專案以 [b4rtaz/distributed-llama](https://github.com/b4rtaz/distributed-llama) 作為底層分散式推論引擎，並使用 Meta Llama 3.2 3B Instruct 的 Q40 量化模型。第三方程式與模型的使用方式及授權條款，請參考各自的原始專案。
+本專案以 [b4rtaz/distributed-llama](https://github.com/b4rtaz/distributed-llama) 作為底層分散式推論引擎，並使用 Meta Llama 3.2 3B Instruct 的 Q40 量化模型。
