@@ -274,6 +274,39 @@ class ClusterManager:
     def topology_nodes(self) -> int:
         return 1 + len(self.select_workers())
 
+    def wait_for_recovery(
+        self,
+        timeout: float = 8.0,
+        stable_for: float = 1.0,
+    ) -> list[WorkerSpec]:
+        """Wait until the selected worker topology stays stable for a short time."""
+        deadline = time.monotonic() + timeout
+        stable_names: tuple[str, ...] | None = None
+        stable_since: float | None = None
+
+        while time.monotonic() < deadline and not self._stop_event.is_set():
+            selected = self.select_workers()
+            names = tuple(worker.name for worker in selected)
+
+            # 至少要有一個 worker，否則先不要立刻退回 root-only
+            if names:
+                if names != stable_names:
+                    stable_names = names
+                    stable_since = time.monotonic()
+                elif stable_since is not None and time.monotonic() - stable_since >= stable_for:
+                    print(f"[cluster] recovery topology ready: {1 + len(selected)} nodes")
+                    return selected
+            else:
+                stable_names = None
+                stable_since = None
+
+            self._stop_event.wait(0.1)
+
+        # 等不到 worker 才真的使用目前能用的 topology，可能會是 root-only
+        selected = self.select_workers()
+        print(f"[cluster] recovery wait timeout, using {1 + len(selected)} nodes")
+        return selected
+
     def format_status(self) -> str:
         snapshots = self.snapshots()
         selected = {worker.name for worker in self.select_workers()}

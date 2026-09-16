@@ -34,7 +34,8 @@ if not LINE_CHANNEL_ACCESS_TOKEN or not LINE_CHANNEL_SECRET:
 
 INFERENCE_STEPS = int(os.environ.get("DLLAMA_STEPS", "30"))
 MAX_RECOVERY_RETRIES = int(os.environ.get("DLLAMA_MAX_RECOVERY_RETRIES", "3"))
-RECOVERY_SETTLE_SEC = float(os.environ.get("DLLAMA_RECOVERY_SETTLE_SEC", "0.5"))
+RECOVERY_WAIT_TIMEOUT = float(os.environ.get("DLLAMA_RECOVERY_WAIT_TIMEOUT", "8.0"))
+RECOVERY_STABLE_SEC = float(os.environ.get("DLLAMA_RECOVERY_STABLE_SEC", "1.0"))
 
 
 app = Flask(__name__)
@@ -162,11 +163,17 @@ def run_once(prompt: str) -> InferenceResult:
 
 def run_with_recovery(user_id: str, prompt: str) -> InferenceResult:
     last_result: InferenceResult | None = None
+    retry_workers = None
 
     for attempt in range(MAX_RECOVERY_RETRIES + 1):
-        workers = cluster.select_workers()
+        # 第一次直接用目前拓樸，重試時則使用等待恢復後選到的 worker
+        if retry_workers is None:
+            workers = cluster.select_workers()
+        else:
+            workers = retry_workers
+            retry_workers = None
+
         node_count = 1 + len(workers)
-        worker_names = ", ".join(worker.name for worker in workers) or "root only"
 
         if attempt == 0:
             safe_push(
@@ -198,7 +205,6 @@ def run_with_recovery(user_id: str, prompt: str) -> InferenceResult:
         if result.reason != "worker_disconnected":
             return result
 
-        failed = result.failed_worker or "a worker"
         safe_push(
             user_id,
             TextSendMessage(
@@ -206,10 +212,12 @@ def run_with_recovery(user_id: str, prompt: str) -> InferenceResult:
             ),
         )
 
-        # The heartbeat monitor normally marks the worker first. This short
-        # delay gives the other monitors enough time to settle before choosing
-        # the next legal 4/2/1-node topology.
-        time.sleep(RECOVERY_SETTLE_SEC)
+        # 原本的 inference 結束後，其他 worker 也可能因連線中斷而重新啟動。
+        # 等到至少一個 worker 穩定 READY，再決定新的 4/2/1-node topology。
+        retry_workers = cluster.wait_for_recovery(
+            timeout=RECOVERY_WAIT_TIMEOUT,
+            stable_for=RECOVERY_STABLE_SEC,
+        )
 
     assert last_result is not None
     return last_result
