@@ -152,7 +152,7 @@ Bot 會要求使用者輸入英文 prompt，接著將工作加入 queue。輪到
 
 ### Demo Video
 
-> **YouTube Demo：** [影片連結（待補）](YOUTUBE_URL_HERE)
+> **YouTube Demo：** [https://youtu.be/ByYNCZjmNnw](YOUTUBE_URL_HERE)
 
 影片為無聲錄影，畫面配置如下：
 
