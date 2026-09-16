@@ -15,7 +15,6 @@
 
 - **Distributed inference**：使用 Distributed Llama 的 tensor parallelism，在 Root 與 Worker 間分配模型權重及推論計算。
 - **LINE Chatbot interface**：透過 Flask Webhook 接收 LINE 訊息，使用者輸入 `inference` 後即可提交英文提示詞。
-- **Request queue**：以執行緒安全的佇列依序處理多位使用者請求，避免多個推論程序同時占用有限資源。
 - **Heartbeat monitoring**：Worker 每 1 秒回報心跳；Root 若超過 3 秒未收到訊號，便將節點視為斷線。
 - **Failure handling**：偵測到 Worker 異常後終止原推論，通知使用者並改以不含該 Worker 的模式重新執行。
 - **Timeout and deduplication**：推論超過 120 秒時自動終止，並在 10 分鐘內忽略重複的 LINE 訊息事件。
@@ -87,10 +86,10 @@ pip install flask requests line-bot-sdk
 
 開始執行前，請完成以下設定：
 
-1. 在 `call.py` 設定 Worker 的固定 IP、推論連接埠與心跳連接埠。
+1. 在 `call.py` 設定 Worker 的固定 IP、用於 inference 和用於 heartbeat 的 port。
 2. 在 LINE Developers 建立 Messaging API Channel，取得 Channel Access Token 與 Channel Secret。
-3. 將 LINE 憑證以環境變數或未納入版本控制的設定檔提供給 `app.py`，避免將憑證提交至公開儲存庫。
-4. 使用 ngrok 或其他 HTTPS 反向代理公開 Root 的 5000 連接埠，並將公開網址設定為 LINE Webhook URL。
+3. 將 LINE 提供的 Channel Access Token 與 Channel Secret以環境變數提供給 `app.py`。
+4. 使用 ngrok 公開 Root 的 5000 連接埠，並將公開網址設定為 LINE Webhook URL。
 
 ## Usage
 
@@ -118,13 +117,14 @@ ngrok http 5000
 inference
 ```
 
-收到提示後輸入英文 prompt。系統會依序顯示排隊、開始推論與最終輸出；圖片、影片、音訊、檔案、位置及貼圖目前不會送入模型。
+收到提示後輸入英文 prompt。系統會依序顯示排隊、開始推論與最終輸出；圖片、影片、音訊、檔案、位置及貼圖目前不支援。
 
-## Results and Evaluation
+## Results and Demo
 
-目前已完成 4 台 Raspberry Pi 的叢集部署、Llama 3.2 3B 量化模型推論、LINE 訊息收發、請求排隊，以及 Worker 心跳監控與重新推論流程。專案現階段著重於系統整合與可運作性，尚未以正式實驗數據宣稱分散式執行具有固定加速比例。
+目前已完成 4 台 Raspberry Pi 的叢集部署、Llama 3.2 3B 量化模型推論、LINE 訊息收發、請求排隊，以及 Worker 心跳監控與重新推論流程。專案現階段著重於系統整合與可運作性。以下為展示影片，影片中左側為Line chatbot，右側為 MobaXterm 使用 ssh 連接並控制所有節點，root 執行 app.py、workers 執行 worker.py。此外，root 還開著另一個 ssh 連線，用於在背景運行 ngrok，將本地的運行的叢集對外產生一個公開 URL。
 
-後續評估將比較 1、2、4 個節點在相同 prompt 與生成長度下的首字延遲、總推論時間、tokens/s、記憶體使用量及功耗，並記錄 Worker 斷線後的偵測時間與服務恢復時間。
+影片主要展示使用 status 的輸出，以及使用 inference 後將中斷其中一個 worker 的程式，此時 root 的反應以及 chatbot 的輸出。
+
 
 ## Limitations
 
